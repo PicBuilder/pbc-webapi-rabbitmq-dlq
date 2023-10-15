@@ -1,0 +1,32 @@
+version: '3.4'
+
+services:
+  employeemanagement.api:
+    container_name: employeemanagement.api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssqlserverdb;Database=EmpDb;User Id=sa;Password=Test#2023;MultipleActiveResultSets=True;TrustServerCertificate=Yes;
+      - EventBusSettings__HostAddress=amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "5001:80"
+    depends_on:
+      - mssqlserverdb
+      - rabbitmq
+    networks:
+      - empnw
+
+  employeemanagement.dlq.api:
+    container_name: employeemanagement.dlq.api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - EventBusSettings__HostAddress=amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "5002:80"
+    depends_on:
+      - mssqlserverdb
+      - rabbitmq
+    networks:
+      - empnw
+

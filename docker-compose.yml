@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+  mssqlserverdb:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: mssqlserverdb
+    environment:
+        SA_PASSWORD: "Test#2023"
+        ACCEPT_EULA: "Y"
+    restart: always
+    ports:
+      - "1433:1433"
+    networks:
+      - empnw
+
+  rabbitmq:
+    image: rabbitmq:3.12.6-management-alpine
+    container_name: rabbitmq
+    restart: always
+    ports:
+        - "5672:5672"
+        - "15672:15672"
+    networks:
+      - empnw
+
+  employeemanagement.api:
+    image: ${DOCKER_REGISTRY-}employeemanagementapi
+    build:
+      context: .
+      dockerfile: src/EmployeeManagement.Api/Dockerfile
+
+  employeemanagement.dlq.api:
+    image: ${DOCKER_REGISTRY-}employeemanagementdlqapi
+    build:
+      context: .
+      dockerfile: src/EmployeeManagement.Dlq.Api/Dockerfile
+
+networks:
+  empnw:
+    name: empnw
+    driver: bridge
+    external: false
+
