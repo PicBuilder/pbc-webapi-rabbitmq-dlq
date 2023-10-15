@@ -25,26 +25,25 @@ namespace EmployeeManagement.Api
 
                 config.UsingRabbitMq((ctx, cfg) =>
                 {
+                    // implementing order matters suggestion per Chris P
                     cfg.Host(builder.Configuration["EventBusSettings:HostAddress"]);
 
                     cfg.ReceiveEndpoint("employee_q", c =>
                     {
                         c.PrefetchCount = 16;
 
+                        c.UseMessageRetry(retryConfigurator =>
+                        {
+                            retryConfigurator.Interval(1, TimeSpan.FromSeconds(1));
+                            retryConfigurator.Handle<Exception>();
+                        });
+
                         c.ConfigureConsumer<EmployeeDtoEventConsumer>(ctx);
-
                     });
-
-                    cfg.UseMessageRetry(retryConfigurator =>
-                    {
-                        retryConfigurator.Interval(3, TimeSpan.FromSeconds(1));
-                        retryConfigurator.Handle<Exception>();
-                    });
-
                 });
             });
 
-            builder.Services.AddScoped<EmployeeDtoEventConsumer>();
+            //builder.Services.AddScoped<EmployeeDtoEventConsumer>();
             #endregion
 
 
