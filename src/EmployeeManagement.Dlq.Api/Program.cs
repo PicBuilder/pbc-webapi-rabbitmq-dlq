@@ -1,5 +1,6 @@
 using EmployeeManagement.Dlq.Api.Consumers;
 using MassTransit;
+using RabbitMQ.Client;
 
 namespace EmployeeManagement.Dlq.Api
 {
@@ -19,10 +20,10 @@ namespace EmployeeManagement.Dlq.Api
                 {
                     cfg.Host(builder.Configuration["EventBusSettings:HostAddress"]);
 
-                    cfg.ReceiveEndpoint("employee_q_error", c =>
+                    cfg.ReceiveEndpoint("employee_dlq", c =>
                     {
+                        c.ExchangeType = ExchangeType.Direct;
                         c.PrefetchCount = 16;
-
                         c.ConfigureConsumer<DlqConsumer>(ctx);
 
                     });

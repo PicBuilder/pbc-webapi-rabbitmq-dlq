@@ -3,6 +3,7 @@ using Employee.EventBus.Data;
 using Employee.EventBus.Data.Interfaces;
 using MassTransit;
 using Employee.EventBus.Consumers;
+using RabbitMQ.Client;
 
 namespace EmployeeManagement.Api
 {
@@ -25,27 +26,45 @@ namespace EmployeeManagement.Api
 
                 config.UsingRabbitMq((ctx, cfg) =>
                 {
-                    // implementing order matters suggestion per Chris P
+                    // Connection
                     cfg.Host(builder.Configuration["EventBusSettings:HostAddress"]);
 
+                    // Primary Queue Configuration
                     cfg.ReceiveEndpoint("employee_q", c =>
                     {
                         c.PrefetchCount = 16;
 
+                        // Set up the Dead Letter Exchange and routing key on the original queue
+                        c.SetQueueArgument("x-dead-letter-exchange", "dead_letter_exchange");
+                        c.SetQueueArgument("x-dead-letter-routing-key", "employee_dlq");
+
+                        // Retry policy configuration
                         c.UseMessageRetry(retryConfigurator =>
                         {
-                            retryConfigurator.Interval(1, TimeSpan.FromSeconds(1));
-                            retryConfigurator.Handle<Exception>();
+                            retryConfigurator.Interval(1, TimeSpan.FromSeconds(1)); // Adjust retry attempts and interval as necessary
+                            retryConfigurator.Handle<Exception>(); // This can be more specific based on the exceptions you expect
                         });
 
                         c.ConfigureConsumer<EmployeeDtoEventConsumer>(ctx);
                     });
+
+                    // Dead Letter Queue Configuration
+                    cfg.ReceiveEndpoint("employee_dlq", e =>
+                    {
+                        // Other configurations for DLQ like PrefetchCount, etc.
+                        // Ensure you have monitoring or alerts for messages in this queue.
+
+                        e.Bind("dead_letter_exchange", s =>
+                        {
+                            s.ExchangeType = ExchangeType.Direct;
+                            s.RoutingKey = "employee_dlq";
+                        });
+                    });
                 });
             });
 
-            //builder.Services.AddScoped<EmployeeDtoEventConsumer>();
+            builder.Services.AddScoped<EmployeeDtoEventConsumer>();
             #endregion
-
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
